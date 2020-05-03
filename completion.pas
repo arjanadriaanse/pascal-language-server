@@ -246,7 +246,7 @@ type
 implementation
 uses
   SysUtils, Contnrs, PascalParserTool,
-  codeUtils, diagnostics, settings;
+  codeUtils, settings;
   
 type
   TIdentifierListItemHelper = class helper for TIdentifierListItem
@@ -387,12 +387,10 @@ begin with Params do
                 end;
             end;
         end else begin
-          //if CodeToolBoss.ErrorMessage<>'' then
-          //  writeln(stderr, 'Parse error: ',CodeToolBoss.ErrorMessage)
-          //else
-          //  writeln(StdErr, 'Error: no context');
-          PublishCodeToolsError;
-          Flush(StdErr);
+          if CodeToolBoss.ErrorMessage<>'' then
+            writeln(stderr, 'Parse error: ',CodeToolBoss.ErrorMessage)
+          else
+            writeln(StdErr, 'Error: no context');
           Result.isIncomplete := true;
         end;
     except
