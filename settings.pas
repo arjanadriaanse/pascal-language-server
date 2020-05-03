@@ -34,7 +34,6 @@ type
   TServerOptions = set of TServerOption;
   
   TServerSettings = record
-    MainProgramFile: String;
     Options: TServerOptions;
   end;
 
