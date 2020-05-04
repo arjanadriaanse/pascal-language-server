@@ -403,9 +403,6 @@ begin with Params do
         end;
     end;
 
-    writeln(StdErr, 'Completions: ', Completions.count);
-    flush(stderr);
-
     Result.items := Completions;
   end;
 
