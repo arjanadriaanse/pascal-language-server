@@ -391,6 +391,7 @@ begin with Params do
             writeln(stderr, 'Parse error: ',CodeToolBoss.ErrorMessage)
           else
             writeln(StdErr, 'Error: no context');
+          Flush(stderr);
           Result.isIncomplete := true;
         end;
     except
@@ -401,6 +402,9 @@ begin with Params do
           Result.isIncomplete := true;
         end;
     end;
+
+    writeln(StdErr, 'Completions: ', Completions.count);
+    flush(stderr);
 
     Result.items := Completions;
   end;
