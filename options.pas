@@ -60,9 +60,18 @@ type
     property change: TTextDocumentSyncKind read fChange write fChange;
   end;
 
+  { TSignatureHelpOptions }
+  
+  TSignatureHelpOptions = class(TPersistent)
+  private
+    fTriggerCharacters: TStrings;
+  published
+    // The characters that trigger signature help automatically.
+    property triggerCharacters: TStrings read fTriggerCharacters write fTriggerCharacters;
+  end;
+
   { TCompletionOptions }
 
-  // Completion options.
   TCompletionOptions = class(TPersistent)
   private
     fTriggerCharacters: TStrings;
@@ -117,4 +126,3 @@ begin
 end;
 
 end.
-
