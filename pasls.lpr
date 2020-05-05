@@ -20,6 +20,9 @@
 program pasls;
 
 {$mode objfpc}{$H+}
+{$ifndef LSP}
+{$error LSP macro must be set with current API version number, i.e. LSP:=3014 for API 3.14}
+{$endif}
 
 uses
   SysUtils, fpjson, jsonparser, jsonscanner,
@@ -65,6 +68,16 @@ begin
     Response := Dispatcher.Execute(Request);
     if Assigned(Response) then
     begin
+      // invalid responses without id's or null id's must not be sent to server, i.e:
+      // {"jsonrpc":"2.0","error":{"code":-32603,"message":"Access violation"},"id":null}
+      if (Response is TJSONObject) and 
+        ((TJSONObject(Response).Find('id') = nil) or 
+          TJSONObject(Response).Nulls['id']) then
+        begin
+          Writeln(StdErr, 'invalid response -> ', response.AsJSON, ' from request ',  Content);
+          Flush(StdErr);
+          continue;
+        end;
       Content := Response.AsJSON;
       WriteLn('Content-Type: ', ContentType);
       WriteLn('Content-Length: ', Content.Length);

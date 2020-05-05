@@ -60,9 +60,18 @@ type
     property change: TTextDocumentSyncKind read fChange write fChange;
   end;
 
+  { TSignatureHelpOptions }
+  
+  TSignatureHelpOptions = class(TPersistent)
+  private
+    fTriggerCharacters: TStrings;
+  published
+    // The characters that trigger signature help automatically.
+    property triggerCharacters: TStrings read fTriggerCharacters write fTriggerCharacters;
+  end;
+
   { TCompletionOptions }
 
-  // Completion options.
   TCompletionOptions = class(TPersistent)
   private
     fTriggerCharacters: TStrings;
@@ -91,9 +100,9 @@ type
     // If a server provides both `allCommitCharacters` and commit
     // characters on an individual completion item the ones on the
     // completion item win.
-    //
-    // @since 3.2.0
+    {$if LSP >= 3015}
     property allCommitCharacters: TStrings read fAllCommitCharacters write fAllCommitCharacters;
+    {$endif}
     // The server provides support to resolve additional information
     // for a completion item.
     property resolveProvider: Boolean read fResolveProvider write fResolveProvider;
@@ -117,4 +126,3 @@ begin
 end;
 
 end.
-

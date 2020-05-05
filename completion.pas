@@ -20,11 +20,12 @@
 unit completion;
 
 {$mode objfpc}{$H+}
+{$scopedenums on}
 
 interface
 
 uses
-  Classes, URIParser, CodeToolManager, CodeCache, IdentCompletionTool, BasicCodeTools,
+  Classes, URIParser, CodeToolManager, CodeCache, IdentCompletionTool, BasicCodeTools, CodeTree,
   lsp, basic;
 
 type
@@ -151,7 +152,7 @@ type
   published
     // The label of this completion item. By default also the text
     // that is inserted when selecting this completion.
-    property label_: string read fLabel write fLabel;
+    property &label: string read fLabel write fLabel;
     // The kind of this completion item. Based of the kind an icon is
     // chosen by the editor. The standardized set of available values
     // is defined in `CompletionItemKind`.
@@ -243,6 +244,74 @@ type
   end;
 
 implementation
+uses
+  SysUtils, Contnrs, PascalParserTool,
+  codeUtils, settings;
+  
+type
+  TIdentifierListItemHelper = class helper for TIdentifierListItem
+    function ParamPairList: string;
+    function ParamNameList: string;
+    function ParamTypeList: string;
+  end;
+
+function TIdentifierListItemHelper.ParamPairList: string;
+var
+  ANode: TCodeTreeNode;
+begin
+  Result:='';
+  ANode:=Node;
+  if (ANode<>nil) and (ANode.Desc=ctnProcedure) then begin
+    Result:=Tool.ExtractProcHead(ANode,
+       [phpWithoutClassKeyword,
+        phpWithoutClassName,
+        phpWithoutName,
+        phpWithParameterNames,
+        phpWithoutBrackets,
+        phpWithoutSemicolon,
+        phpDoNotAddSemicolon
+        ]);
+  end;
+end;
+
+function TIdentifierListItemHelper.ParamTypeList: string;
+var
+  ANode: TCodeTreeNode;
+begin
+  Result:='';
+  ANode:=Node;
+  if (ANode<>nil) and (ANode.Desc=ctnProcedure) then begin
+    Result:=Tool.ExtractProcHead(ANode,
+       [phpWithoutClassKeyword,
+        phpWithoutClassName,
+        phpWithoutName,
+        phpWithoutBrackets,
+        phpWithoutSemicolon,
+        phpDoNotAddSemicolon
+        ]);
+    Result:=StringReplace(Result, ',', '', []);
+  end;
+end;
+
+function TIdentifierListItemHelper.ParamNameList: string;
+var
+  ANode: TCodeTreeNode;
+begin
+  Result:='';
+  ANode:=Node;
+  if (ANode<>nil) and (ANode.Desc=ctnProcedure) then begin
+    Result:=Tool.ExtractProcHead(ANode,
+       [phpWithoutBrackets, 
+       phpWithoutClassKeyword,
+       phpWithoutClassName,
+       phpWithoutName,
+       phpWithoutSemicolon,
+       phpDoNotAddSemicolon,
+       phpWithoutParamTypes,
+       phpWithParameterNames
+       ]);
+  end;
+end;
 
 { TCompletion }
 
@@ -250,11 +319,13 @@ function TCompletion.Process(var Params: TCompletionParams): TCompletionList;
 var
   URI: TURI;
   Code: TCodeBuffer;
-  X, Y, PStart, PEnd, Count, I: Integer;
+  X, Y, PStart, PEnd, Count, I, J: Integer;
   Line: string;
   Completions: TCompletionItems;
   Identifier: TIdentifierListItem;
   Completion: TCompletionItem;
+  SnippetText, RawList: String;
+  IdentifierMap: TFPHashList;
 begin with Params do
   begin
     URI := ParseURI(textDocument.uri);
@@ -264,32 +335,78 @@ begin with Params do
     Line := Code.GetLine(Y);
     GetIdentStartEndAtPosition(Line, X + 1, PStart, PEnd);
     CodeToolBoss.IdentifierList.Prefix := Copy(Line, PStart, PEnd - PStart);
-
+    
+    IdentifierMap := TFPHashList.Create;
     Completions := TCompletionItems.Create;
-    if CodeToolBoss.GatherIdentifiers(Code,X + 1,Y + 1) then
-    begin
-      Count := CodeToolBoss.IdentifierList.GetFilteredCount;
-      for I := 0 to Count - 1 do
-      begin
-        Identifier := CodeToolBoss.IdentifierList.FilteredItems[I];
-        Completion := TCompletionItem(Completions.Add);
-        Completion.insertText := Identifier.Identifier;
-        Completion.detail:=Identifier.Node.DescAsString;
-        Completion.insertTextFormat := TInsertTextFormat.PlainText;
-      end;
-    end else begin
-      if CodeToolBoss.ErrorMessage<>'' then
-        writeln(stderr, 'Parse error: ',CodeToolBoss.ErrorMessage)
-      else
-        writeln(stderr, 'Error: no context');
+    Result := TCompletionList.Create;
+
+    try
+      if CodeToolBoss.GatherIdentifiers(Code,X + 1,Y + 1) then
+        begin
+          Count := CodeToolBoss.IdentifierList.GetFilteredCount;
+          for I := 0 to Count - 1 do
+            begin
+              Identifier := CodeToolBoss.IdentifierList.FilteredItems[I];
+
+              if (TServerOption.InsertCompletionsAsSnippets in ServerSettings.Options) and 
+                Identifier.IsProcNodeWithParams then
+                begin
+                  RawList := Identifier.ParamNameList;
+                  SnippetText := ParseParamList(RawList, True);
+                  Completion := TCompletionItem(Completions.Add);
+                  Completion.&label := Identifier.Identifier+'('+RawList+')';
+                  Completion.insertText := Identifier.Identifier+'('+SnippetText+');';
+                  Completion.insertTextFormat := TInsertTextFormat.Snippet;
+                  // according to LSP plugin devs filterText should be the identifier name
+                  // if the label contains non-alpha-numeric characters
+                  Completion.filterText := Identifier.Identifier;
+                  // this ensures the sort order is maintained in Sublime Text
+                  Completion.sortText := IntToStr(I);
+                end
+              else if IdentifierMap.Find(Identifier.Identifier) = nil then
+                begin
+                  Completion := TCompletionItem(Completions.Add);
+                  Completion.&label := Identifier.Identifier;
+                  Completion.detail := Identifier.Node.DescAsString;
+                  if (TServerOption.InsertCompletionProcedureBrackets in ServerSettings.Options) and 
+                    Identifier.IsProcNodeWithParams then
+                    begin
+                      Completion.insertText := Identifier.Identifier+'($0)';
+                      Completion.insertTextFormat := TInsertTextFormat.Snippet;
+                    end
+                  else
+                    begin
+                      Completion.insertText := Identifier.Identifier;
+                      Completion.insertTextFormat := TInsertTextFormat.PlainText;
+                    end;
+                  // this ensures the sort order is maintained in Sublime Text
+                  Completion.sortText := IntToStr(I);
+                  IdentifierMap.Add(Identifier.Identifier, Identifier);
+                end;
+            end;
+        end else begin
+          if CodeToolBoss.ErrorMessage<>'' then
+            writeln(stderr, 'Parse error: ',CodeToolBoss.ErrorMessage)
+          else
+            writeln(StdErr, 'Error: no context');
+          Flush(stderr);
+          Result.isIncomplete := true;
+        end;
+    except
+      on E: Exception do
+        begin
+          writeln(StdErr, 'Completion Error: ', E.ClassName, ' ', E.Message);
+          flush(StdErr);
+          Result.isIncomplete := true;
+        end;
     end;
 
-    Result := TCompletionList.Create;
     Result.items := Completions;
   end;
+
+  FreeAndNil(IdentifierMap);
 end;
 
 initialization
   LSPHandlerManager.RegisterHandler('textDocument/completion', TCompletion);
 end.
-

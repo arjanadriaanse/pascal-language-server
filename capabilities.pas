@@ -61,11 +61,31 @@ type
   private
     fTextDocumentSync: TTextDocumentSyncOptions;
     fCompletionProvider: TCompletionOptions;
+    fHoverProvider: boolean;
+    fDefinitionProvider: boolean;
+    fDeclarationProvider: boolean;
+    fReferencesProvider: boolean;
+    fImplementationProvider: boolean;
+    fCodeActionProvider: boolean;
+    fDocumentHighlightProvider: boolean;
+    fDocumentSymbolProvider: boolean;
+    fWorkspaceSymbolProvider: boolean;
+    fSignatureHelpProvider: TSignatureHelpOptions;
   public
     constructor Create;
   published
     property textDocumentSync: TTextDocumentSyncOptions read fTextDocumentSync write fTextDocumentSync;
     property completionProvider: TCompletionOptions read fCompletionProvider write fCompletionProvider;
+    property hoverProvider: boolean read fHoverProvider write fHoverProvider;
+    property definitionProvider: boolean read fDefinitionProvider write fDefinitionProvider;
+    property declarationProvider: boolean read fDeclarationProvider write fDeclarationProvider;
+    property referencesProvider: boolean read fReferencesProvider write fReferencesProvider;
+    property implementationProvider: boolean read fImplementationProvider write fImplementationProvider;
+    property codeActionProvider: boolean read fCodeActionProvider write fCodeActionProvider;
+    property documentHighlightProvider: boolean read fDocumentHighlightProvider write fDocumentHighlightProvider;
+    property documentSymbolProvider: boolean read fDocumentSymbolProvider write fDocumentSymbolProvider;
+    property workspaceSymbolProvider: boolean read fWorkspaceSymbolProvider write fWorkspaceSymbolProvider;
+    property signatureHelpProvider: TSignatureHelpOptions read fSignatureHelpProvider write fSignatureHelpProvider;
   end;
 
 implementation
@@ -73,10 +93,16 @@ implementation
 { TServerCapabilities }
 
 constructor TServerCapabilities.Create;
+var
+  triggerCharacters: TStringList;
 begin
   textDocumentSync := TTextDocumentSyncOptions.Create;
+  
   completionProvider := TCompletionOptions.Create;
+  triggerCharacters := TStringList.Create;
+  triggerCharacters.Add('.');
+  triggerCharacters.Add('^');
+  completionProvider.triggerCharacters := triggerCharacters;
 end;
 
 end.
-
