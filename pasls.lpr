@@ -20,6 +20,9 @@
 program pasls;
 
 {$mode objfpc}{$H+}
+{$ifndef LSP}
+{$error LSP macro must be set with current API version number, i.e. LSP:=3014 for API 3.14}
+{$endif}
 
 uses
   SysUtils, fpjson, jsonparser, jsonscanner,

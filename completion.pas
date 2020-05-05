@@ -348,8 +348,6 @@ begin with Params do
             begin
               Identifier := CodeToolBoss.IdentifierList.FilteredItems[I];
 
-              // TODO: currently the parsing is temporary also until we can 
-              // figure out how to use code tools properly
               if (TServerOption.InsertCompletionsAsSnippets in ServerSettings.Options) and 
                 Identifier.IsProcNodeWithParams then
                 begin
