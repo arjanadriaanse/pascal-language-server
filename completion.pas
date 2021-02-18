@@ -155,7 +155,7 @@ type
   published
     // The label of this completion item. By default also the text
     // that is inserted when selecting this completion.
-    property label_: string read fLabel write fLabel;
+    property &label: string read fLabel write fLabel;
     // The kind of this completion item. Based of the kind an icon is
     // chosen by the editor. The standardized set of available values
     // is defined in `CompletionItemKind`.
