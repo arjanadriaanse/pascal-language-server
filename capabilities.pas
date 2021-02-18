@@ -24,7 +24,7 @@ unit capabilities;
 interface
 
 uses
-  Classes, options;
+  SysUtils, Classes, options;
 
 type
 
@@ -50,6 +50,8 @@ type
   private
     fWorkspace: TWorkspaceClientCapabilities;
     fTextDocument: TTextDocumentClientCapabilities;
+  public
+    destructor Destroy; override;
   published
     property workspace: TWorkspaceClientCapabilities read fWorkspace write fWorkspace;
     property textDocument: TTextDocumentClientCapabilities read fTextDocument write fTextDocument;
@@ -63,6 +65,7 @@ type
     fCompletionProvider: TCompletionOptions;
   public
     constructor Create;
+    destructor Destroy; override;
   published
     property textDocumentSync: TTextDocumentSyncOptions read fTextDocumentSync write fTextDocumentSync;
     property completionProvider: TCompletionOptions read fCompletionProvider write fCompletionProvider;
@@ -70,12 +73,29 @@ type
 
 implementation
 
+{ TClientCapabilities }
+
+destructor TClientCapabilities.Destroy;
+begin
+  FreeAndNil(fWorkspace);
+  FreeAndNil(fTextDocument);
+  inherited Destroy;
+end;
+
 { TServerCapabilities }
 
 constructor TServerCapabilities.Create;
 begin
   textDocumentSync := TTextDocumentSyncOptions.Create;
   completionProvider := TCompletionOptions.Create;
+end;
+
+destructor TServerCapabilities.Destroy;
+begin
+  FreeAndNil(fTextDocumentSync);
+  FreeAndNil(fCompletionProvider);
+
+  inherited Destroy;
 end;
 
 end.

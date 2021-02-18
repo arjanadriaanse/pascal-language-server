@@ -24,7 +24,7 @@ unit synchronization;
 interface
 
 uses
-  Classes, URIParser, CodeToolManager, CodeCache,
+  SysUtils, Classes, URIParser, CodeToolManager, CodeCache,
   lsp, basic;
 
 type
@@ -34,6 +34,8 @@ type
   TDidOpenTextDocumentParams = class(TPersistent)
   private
     fTextDocument: TTextDocumentItem;
+  public
+    destructor Destroy; override;
   published
     // The document that was opened.
     property textDocument: TTextDocumentItem read fTextDocument write fTextDocument;
@@ -66,6 +68,7 @@ type
     fContentChanges: TCollection;
   public
     constructor Create;
+    destructor Destroy; override;
   published
     // The document that did change. The version number points to the
     // version after all provided content changes have been applied.
@@ -95,11 +98,26 @@ type
 
 implementation
 
+{ TDidOpenTextDocumentParams }
+
+destructor TDidOpenTextDocumentParams.Destroy;
+begin
+  FreeAndNil(fTextDocument);
+  inherited Destroy;
+end;
+
 { TDidChangeTextDocumentParams }
 
 constructor TDidChangeTextDocumentParams.Create;
 begin
   contentChanges := TCollection.Create(TTextDocumentContentChangeEvent);
+end;
+
+destructor TDidChangeTextDocumentParams.Destroy;
+begin
+  FreeAndNil(fTextDocument);
+  FreeAndNil(fContentChanges);
+  inherited Destroy;
 end;
 
 { TDidOpenTextDocument }
