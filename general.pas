@@ -24,7 +24,7 @@ unit general;
 interface
 
 uses
-  Classes, CodeToolManager, CodeToolsConfig, URIParser, LazUTF8,
+  SysUtils, Classes, CodeToolManager, CodeToolsConfig, URIParser, LazUTF8,
   lsp, capabilities;
 
 type
@@ -40,6 +40,8 @@ type
     //fProcessId: string;
     fRootUri: string;
     fCapabilities: TClientCapabilities;
+  public
+    destructor Destroy; override;
   published
     //property processId: string read fProcessId write fProcessId;
     property rootUri: string read fRootUri write fRootUri;
@@ -51,6 +53,8 @@ type
   TInitializeResult = class(TPersistent)
   private
     fCapabilities: TServerCapabilities;
+  public
+    destructor Destroy; override;
   published
     property capabilities: TServerCapabilities read fCapabilities write fCapabilities;
   end;
@@ -96,29 +100,46 @@ type
 
 implementation
 
+{ TInitializeParams }
+
+destructor TInitializeParams.Destroy;
+begin
+  FreeAndNil(fCapabilities);
+  inherited Destroy;
+end;
+
+{ TInitializeResult }
+
+destructor TInitializeResult.Destroy;
+begin
+  FreeAndNil(fCapabilities);
+  inherited Destroy;
+end;
+
 { TInitialize }
 
 function TInitialize.Process(var Params : TInitializeParams): TInitializeResult;
 var
   CodeToolsOptions: TCodeToolsOptions;
-begin with Params do
-  begin
-    CodeToolsOptions := TCodeToolsOptions.Create;
-    with CodeToolsOptions do
-    begin
-      InitWithEnvironmentVariables;
-      ProjectDir := ParseURI(rootUri).Path;
-    end;
-    with CodeToolBoss do
-    begin
-      Init(CodeToolsOptions);
-      IdentifierList.SortForHistory := True;
-      IdentifierList.SortForScope := True;
-    end;
+begin
+  CodeToolsOptions := TCodeToolsOptions.Create;
 
-    Result := TInitializeResult.Create;
-    Result.capabilities := TServerCapabilities.Create;
+  with CodeToolsOptions do
+  begin
+    InitWithEnvironmentVariables;
+    ProjectDir := ParseURI(Params.rootUri).Path;
   end;
+  with CodeToolBoss do
+  begin
+    Init(CodeToolsOptions);
+    IdentifierList.SortForHistory := True;
+    IdentifierList.SortForScope := True;
+  end;
+
+  Result := TInitializeResult.Create;
+  Result.capabilities := TServerCapabilities.Create;
+
+  FreeAndNil(CodeToolsOptions);
 end;
 
 { TInitialized }

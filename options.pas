@@ -24,7 +24,7 @@ unit options;
 interface
 
 uses
-  Classes;
+  SysUtils, Classes;
 
 type
 

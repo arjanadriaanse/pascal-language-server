@@ -72,5 +72,10 @@ begin
       Write(Content);
       Flush(Output);
     end;
+
+    FreeAndNil(Request);
+    FreeAndNil(Response);
   end;
+
+  FreeAndNil(Dispatcher);
 end.

@@ -55,6 +55,7 @@ type
                               DataName: TJSONStringType; var AValue: TObject); static;
   public
     class constructor Create;
+    class destructor Destroy;
     class function ToObject(const JSON: TJSONData): T; static;
     class function ToJSON(AObject: T): TJSONData; static;
   end;
@@ -206,7 +207,8 @@ var
   C: TClass;
 begin
   C := GetTypeData(Info^.PropType)^.ClassType;
-  if C.InheritsFrom(TPersistent) then AValue := C.Create;
+  assert(C.InheritsFrom(TPersistent));
+  AValue := C.Create;
 end;
 
 class constructor TLSPStreaming.Create;
@@ -217,6 +219,12 @@ begin
 
   DeStreamer := TLSPDeStreamer.Create(nil);
   DeStreamer.OnGetObject := @GetObject;
+end;
+
+class destructor TLSPStreaming.Destroy;
+begin
+  FreeAndNil(Streamer);
+  FreeAndNil(DeStreamer);
 end;
 
 class function TLSPStreaming.ToObject(const JSON: TJSONData): T;
@@ -238,6 +246,7 @@ var
 begin
   Input := specialize TLSPStreaming<T>.ToObject(Params);
   Result := specialize TLSPStreaming<U>.ToJSON(AProcess(Input));
+  Input.Free;
 end;
 
 { TLSPRequest }
@@ -248,6 +257,7 @@ var
 begin
   Input := specialize TLSPStreaming<T>.ToObject(Params);
   Result := specialize TLSPStreaming<U>.ToJSON(Process(Input));
+  Input.Free;
   if not Assigned(Result) then Result := TJSONNull.Create;
 end;
 
@@ -259,6 +269,7 @@ var
 begin
   Input := specialize TLSPStreaming<T>.ToObject(Params);
   Process(Input);
+  Input.Free;
 end;
 
 { TLSPDispatcher }
