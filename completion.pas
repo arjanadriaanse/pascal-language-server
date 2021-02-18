@@ -24,7 +24,7 @@ unit completion;
 interface
 
 uses
-  Classes, URIParser, CodeToolManager, CodeCache, IdentCompletionTool, BasicCodeTools,
+  SysUtils, Classes, URIParser, CodeToolManager, CodeCache, IdentCompletionTool, BasicCodeTools,
   lsp, basic;
 
 type
@@ -66,6 +66,8 @@ type
   TCompletionParams = class(TTextDocumentPositionParams)
   private
     fContext: TCompletionContext;
+  public
+    destructor Destroy; override;
   published
     // The completion context. This is only available if the client
     // specifies to send this using
@@ -148,10 +150,12 @@ type
     fTextEdit: TTextEdit;
     fAdditionalTextEdits: TTextEdits;
     fCommitCharacters: TStrings;
+  public
+    destructor Destroy; override;
   published
     // The label of this completion item. By default also the text
     // that is inserted when selecting this completion.
-    property label_: string read fLabel write fLabel;
+    property &label: string read fLabel write fLabel;
     // The kind of this completion item. Based of the kind an icon is
     // chosen by the editor. The standardized set of available values
     // is defined in `CompletionItemKind`.
@@ -228,6 +232,8 @@ type
   private
     fIsIncomplete: Boolean;
     fItems: TCompletionItems;
+  public
+    destructor Destroy; override;
   published
     // This list it not complete. Further typing should result in
     // recomputing this list.
@@ -243,6 +249,32 @@ type
   end;
 
 implementation
+
+{ TCompletionParams }
+
+destructor TCompletionParams.Destroy;
+begin
+  FreeAndNil(fContext);
+  inherited Destroy;
+end;
+
+{ TCompletionItem }
+
+destructor TCompletionItem.Destroy;
+begin
+  FreeAndNil(fAdditionalTextEdits);
+  FreeAndNil(fCommitCharacters);
+  FreeAndNil(fDocumentation);
+  inherited Destroy;
+end;
+
+{ TCompletionList }
+
+destructor TCompletionList.Destroy;
+begin
+  FreeAndNil(fItems);
+  inherited Destroy;
+end;
 
 { TCompletion }
 
